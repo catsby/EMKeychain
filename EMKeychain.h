@@ -55,6 +55,7 @@
 
 + (EMGenericKeychainItem *)genericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString;
 + (EMGenericKeychainItem *)addGenericKeychainItemForService:(NSString *)serviceNameString withUsername:(NSString *)usernameString password:(NSString *)passwordString;
++ (EMGenericKeychainItem *)genericKeychainItemForService:(NSString *)serviceNameString;
 
 + (void) setKeychainPassword:(NSString*)password forUsername:(NSString*)username service:(NSString*)serviceName;
 + (NSString*) passwordForUsername:(NSString*)username service:(NSString*)serviceName;

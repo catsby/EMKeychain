@@ -47,7 +47,7 @@ static BOOL _logErrors;
 }
 
 - (id)initWithCoreKeychainItem:(SecKeychainItemRef)item username:(NSString *)username password:(NSString *)password {
-	if (self = [super init]) 	{
+	if ((self = [super init])) 	{
 		coreKeychainItem = item;
 		[self setValue:username forKey:@"myUsername"];
 		[self setValue:password forKey:@"myPassword"];
@@ -171,7 +171,9 @@ static BOOL _logErrors;
 	OSStatus returnStatus = SecKeychainAddGenericPassword(NULL, strlen(serviceName), serviceName, strlen(username), username, strlen(password), (void *)password, &item);
 	
 	if (returnStatus != noErr || !item) {
-		NSLog(@"Error (%@) - %s", NSStringFromSelector(_cmd), GetMacOSStatusErrorString(returnStatus));
+        CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
+		NSLog(@"Error (%@) - %s", NSStringFromSelector(_cmd), errDesc);
+        CFRelease(errDesc);
 		return nil;
 	}
 	return [EMGenericKeychainItem genericKeychainItem:item forServiceName:serviceNameString username:usernameString password:passwordString];
@@ -189,8 +191,62 @@ static BOOL _logErrors;
 	return [[EMGenericKeychainItem genericKeychainItemForService:serviceName withUsername:username] password];
 }
 
+// generic keychain item for service
+// returns first item matching the service criteria.
++ (EMGenericKeychainItem *)genericKeychainItemForService:(NSString *)serviceNameString
+{
+	const char *serviceName = [serviceNameString UTF8String];
+	
+	UInt32 passwordLength = 0;
+	char *password = nil;
+	
+	SecKeychainItemRef item = nil;
+	OSStatus returnStatus = SecKeychainFindGenericPassword(NULL, strlen(serviceName), serviceName, 0, NULL, &passwordLength, (void **)&password, &item);
+	if (returnStatus != noErr || !item)
+	{
+		if (_logErrors)
+		{
+			NSLog(@"Error (%@) - %s", NSStringFromSelector(_cmd), GetMacOSStatusErrorString(returnStatus));
+		}
+		return nil;
+	}
+	NSString *passwordString = [NSString stringWithCString:password length:passwordLength];
+	SecKeychainItemFreeContent(NULL, password);	// free the password data
+	
+	// search sec item for account name
+	SecKeychainAttribute attributes[2];
+	SecKeychainAttributeList list;
+	attributes[0].tag = kSecAccountItemAttr;
+	list.count = 1;
+	list.attr = attributes;
+	
+	returnStatus = SecKeychainItemCopyContent(item, NULL, &list, NULL, NULL);
+	if (returnStatus != noErr)
+	{
+		if (_logErrors)
+		{
+			NSLog(@"Error (%@) - %s", NSStringFromSelector(_cmd), GetMacOSStatusErrorString(returnStatus));
+		}
+		return nil;
+	}
+	
+	// get the attribute data
+	SecKeychainAttribute attr;
+	attr = list.attr[0];
+	char buffer[1024];
+	strncpy(buffer, attr.data, attr.length);
+	buffer[attr.length] = '\0';
+	
+	// get the username
+	NSString *usernameString = [NSString stringWithCString:buffer length:attr.length];
+    
+	SecKeychainItemFreeContent(&list, NULL);	// free the list
+	
+	return [EMGenericKeychainItem genericKeychainItem:item forServiceName:serviceNameString username:usernameString password:passwordString];
+}
+
 - (id)initWithCoreKeychainItem:(SecKeychainItemRef)item serviceName:(NSString *)serviceName username:(NSString *)username password:(NSString *)password {
-	if (self = [super initWithCoreKeychainItem:item username:username password:password]) {
+	if ((self = [super initWithCoreKeychainItem:item username:username password:password])) {
 		[self setValue:serviceName forKey:@"myServiceName"];
 	}
 	return self;
@@ -214,6 +270,8 @@ static BOOL _logErrors;
 	[myServiceName release];
 	[super dealloc];
 }
+
+
 @end
 
 @implementation EMInternetKeychainItem
@@ -280,7 +338,7 @@ static BOOL _logErrors;
 }
 
 - (id)initWithCoreKeychainItem:(SecKeychainItemRef)item server:(NSString *)server username:(NSString *)username password:(NSString *)password path:(NSString *)path port:(int)port protocol:(SecProtocolType)protocol {
-	if (self = [super initWithCoreKeychainItem:item username:username password:password]) {
+	if ((self = [super initWithCoreKeychainItem:item username:username password:password])) {
 		[self setValue:server forKey:@"myServer"];
 		[self setValue:path forKey:@"myPath"];
 		[self setValue:[NSNumber numberWithInt:port] forKey:@"myPort"];

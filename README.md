@@ -94,3 +94,26 @@ Thus, this update both simplifies the wrapper for developers, and uses more conv
 or
 
     [EMKeychainItem removeKeychainItem:[EMGenericKeychainItem genericKeychainItemForService:@"SomeApplicationService" withUsername:@"sam"]];
+
+Keychain item removal calls `SecKeychainItemDelete()`. The documentation for this function states that you cannot delete an item and then recreate it without loosing access rights. In the following snippet we create an item, delete it and then recreate it again. 
+
+	EMGenericKeychainItem *item1 = [EMGenericKeychainItem addGenericKeychainItemForService:@"Alice" withUsername:@"Bob" password:@"Charlie!"];
+    (item1 ? NSLog(@"item 1 created") : NSLog(@"item 1 not created"));
+    item1 = [EMGenericKeychainItem genericKeychainItemForService:@"Alice" withUsername:@"Bob"];
+    (item1 ? NSLog(@"item 1 found") : NSLog(@"item 1 not found"));
+    [item1 remove];
+     
+     EMGenericKeychainItem *item2 = [EMGenericKeychainItem addGenericKeychainItemForService:@"Alice" withUsername:@"Bob" password:@"Charlie!"];
+    (item2 ? NSLog(@"item 2 created") : NSLog(@"item 2 not created"));
+     item2 = [EMGenericKeychainItem genericKeychainItemForService:@"Alice" withUsername:@"Bob"];
+     (item2 ? NSLog(@"item 2 found") : NSLog(@"item 2 not found"));
+
+
+The logged output is:
+
+	KeyChain test: item 1 created
+	KeyChain test: item 1 found
+	KeyChain test: item 2 created
+	KeyChain test: item 2 not found
+
+
