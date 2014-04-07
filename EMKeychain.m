@@ -172,7 +172,7 @@ static BOOL _logErrors;
 	
 	if (returnStatus != noErr || !item) {
         CFStringRef errDesc = SecCopyErrorMessageString(returnStatus, NULL);
-		NSLog(@"Error (%@) - %s", NSStringFromSelector(_cmd), errDesc);
+		NSLog(@"Error (%@) - %@", NSStringFromSelector(_cmd), (NSString *)errDesc);
         CFRelease(errDesc);
 		return nil;
 	}
@@ -210,7 +210,8 @@ static BOOL _logErrors;
 		}
 		return nil;
 	}
-	NSString *passwordString = [NSString stringWithCString:password length:passwordLength];
+
+	NSString *passwordString = [[[NSString alloc] initWithBytes:password length:passwordLength encoding:NSUTF8StringEncoding] autorelease];
 	SecKeychainItemFreeContent(NULL, password);	// free the password data
 	
 	// search sec item for account name
@@ -238,7 +239,7 @@ static BOOL _logErrors;
 	buffer[attr.length] = '\0';
 	
 	// get the username
-	NSString *usernameString = [NSString stringWithCString:buffer length:attr.length];
+	NSString *usernameString = [NSString stringWithCString:buffer encoding:NSUTF8StringEncoding];
     
 	SecKeychainItemFreeContent(&list, NULL);	// free the list
 	
